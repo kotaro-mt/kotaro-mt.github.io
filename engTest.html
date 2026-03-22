@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>英単語クイズ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    :root {
+      --primary: #007aff;
+      --primary-hover: #005bb5;
+      --secondary: #f2f2f7;
+      --danger: #ff3b30;
+      --danger-hover: #d32f2f;
+      --warning: #ff9500;
+      --warning-hover: #e08200;
+      --success: #28a745;
+      --success-hover: #218838;
+      --text: #333333;
+      --text-light: #666666;
+      --bg: #ffffff;
+      --card-bg: #ffffff;
+      --border: #e5e5ea;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 20px 16px;
+      line-height: 1.6;
+      background-color: var(--secondary);
+      color: var(--text);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: center;
+      color: var(--primary);
+    }
+
+    .subtitle {
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+
+    .label {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .word {
+      font-size: 2rem;
+      font-weight: bold;
+      text-align: center;
+      margin: 20px 0;
+      color: var(--text);
+      letter-spacing: 1px;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="number"] {
+      width: 80px;
+      padding: 8px 12px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    input[type="file"] {
+      display: block;
+      width: 100%;
+      margin: 16px 0;
+      padding: 8px;
+      font-size: 0.9rem;
+      background-color: #f9f9f9;
+      border: 1px dashed #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 12px 16px;
+      margin-top: 12px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background-color: var(--primary);
+      color: white;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      background-color: #c7c7cc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-warning { background-color: var(--warning); }
+    .btn-warning:hover:not(:disabled) { background-color: var(--warning-hover); }
+
+    .btn-danger { background-color: var(--danger); }
+    .btn-danger:hover:not(:disabled) { background-color: var(--danger-hover); }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      padding: 8px 12px;
+      margin-top: 8px;
+    }
+    .btn-outline:active { background-color: #fff0f0; }
+
+    .result {
+      font-size: 1.3rem;
+      font-weight: bold;
+      text-align: center;
+      margin: 20px 0;
+      color: var(--success);
+      min-height: 2rem;
+    }
+
+    .small {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      text-align: center;
+    }
+
+    #historyList {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    #historyList li {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 1rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #historyList li:last-child {
+      border-bottom: none;
+    }
+
+    #historyList li .en-word { font-weight: bold; }
+    #historyList li .ja-word { color: var(--text-light); }
+
+    .settings-area {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+  </style>
+</head>
+<body>
+  <h1>📘 英単語クイズ</h1>
+  <p class="subtitle">iPhone / PC 対応・オフラインで動作</p>
+
+  <div class="settings-area">
+    <div class="label">出題範囲（番号で指定・空欄なら全て）</div>
+    <div class="input-group">
+      <input type="number" id="startNum" placeholder="1" min="1" /> <span>番目 〜</span>
+      <input type="number" id="endNum" placeholder="最後" min="1" /> <span>番目</span>
+    </div>
+
+    <input type="file" id="fileInput" accept=".csv" />
+    <div id="status" class="small"></div>
+  </div>
+
+  <!-- 苦手リスト管理エリア -->
+  <div class="settings-area" id="weakControlArea" style="display: none;">
+    <div style="font-weight: bold; margin-bottom: 12px; text-align: center;">
+      ⚠️ 登録されている苦手単語：<span id="weakCount" style="color: var(--danger); font-size: 1.2rem;">0</span> 語
+    </div>
+    <button id="startWeakBtn" class="btn-warning">苦手リストから出題する</button>
+    <button id="clearWeakBtn" class="btn-outline">苦手リストを消去</button>
+  </div>
+
+  <div class="card" id="quizArea" style="display:none;">
+    <div class="label">問題（英→和）</div>
+    <div class="word" id="questionWord"></div>
+
+    <button id="checkBtn">答えを見る</button>
+    <button id="nextBtn" disabled>次の問題</button>
+    <button id="markWeakBtn" class="btn-danger" style="display:none;">この単語を「苦手」に登録</button>
+
+    <div class="result" id="resultArea"></div>
+    <div class="small" id="progress"></div>
+  </div>
+
+  <div class="card" id="historyArea" style="display:none;">
+    <div class="label" style="text-align:center; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin-bottom: 8px;">履歴（直近5件）</div>
+    <ul id="historyList"></ul>
+  </div>
+
+  <script>
+    let vocabList = []; // 現在のクイズ用リスト
+    let weakVocabList = []; // 苦手単語リスト
+    let currentIndex = -1;
+    let usedIndices = [];
+    let historyData = []; // 履歴保存用
+
+    // DOM要素の取得
+    const fileInput = document.getElementById('fileInput');
+    const statusEl = document.getElementById('status');
+    
+    // 苦手機能エリア
+    const weakControlArea = document.getElementById('weakControlArea');
+    const weakCountEl = document.getElementById('weakCount');
+    const startWeakBtn = document.getElementById('startWeakBtn');
+    const clearWeakBtn = document.getElementById('clearWeakBtn');
+
+    // クイズエリア
+    const quizArea = document.getElementById('quizArea');
+    const questionWord = document.getElementById('questionWord');
+    const checkBtn = document.getElementById('checkBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const resultArea = document.getElementById('resultArea');
+    const markWeakBtn = document.getElementById('markWeakBtn');
+    const progressEl = document.getElementById('progress');
+    const historyArea = document.getElementById('historyArea');
+    const historyList = document.getElementById('historyList');
+
+    // 初期化：ローカルストレージから苦手単語を読み込む
+    loadWeakList();
+
+    // イベントリスナー設定
+    fileInput.addEventListener('change', handleFileSelect, false);
+    checkBtn.addEventListener('click', checkAnswer);
+    nextBtn.addEventListener('click', nextQuestion);
+    markWeakBtn.addEventListener('click', markCurrentAsWeak);
+    
+    startWeakBtn.addEventListener('click', startWeakQuiz);
+    clearWeakBtn.addEventListener('click', clearWeakList);
+    
+    // keydownイベント部分
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        if (!checkBtn.disabled) {
+          checkAnswer();
+        } else if (!nextBtn.disabled) {
+          nextQuestion();
+        }
+      }
+    });
+
+    // --- 苦手機能に関する処理 ---
+    function loadWeakList() {
+      let saved = null;
+      try {
+        saved = localStorage.getItem('weakVocabList');
+      } catch (e) {
+        console.warn('ローカルストレージにアクセスできません:', e);
+      }
+      
+      if (saved) {
+        try {
+          weakVocabList = JSON.parse(saved);
+        } catch (e) {
+          weakVocabList = [];
+        }
+      } else {
+        weakVocabList = [];
+      }
+      updateWeakArea();
+    }
+
+    function saveWeakList() {
+      try {
+        localStorage.setItem('weakVocabList', JSON.stringify(weakVocabList));
+      } catch (e) {
+        console.warn('ローカルストレージに保存できません:', e);
+        // 保存に失敗しても画面の表示は更新する
+      }
+      updateWeakArea();
+    }
+
+    function updateWeakArea() {
+      weakCountEl.textContent = weakVocabList.length;
+      if (weakVocabList.length > 0) {
+        weakControlArea.style.display = 'block';
+        startWeakBtn.disabled = false;
+      } else {
+        weakControlArea.style.display = 'block';
+        startWeakBtn.disabled = true;
+      }
+    }
+
+    function markCurrentAsWeak() {
+      if (currentIndex < 0 || currentIndex >= vocabList.length) return;
+      const currentItem = vocabList[currentIndex];
+      
+      const existingIndex = weakVocabList.findIndex(item => item.en === currentItem.en);
+      
+      if (existingIndex === -1) {
+        weakVocabList.push({ en: currentItem.en, ja: currentItem.ja });
+        saveWeakList();
+        markWeakBtn.textContent = "✓ 登録済み（クリックで解除）";
+        markWeakBtn.className = "btn-outline";
+        markWeakBtn.style.backgroundColor = ""; // クラスのスタイルを優先
+      } else {
+        weakVocabList.splice(existingIndex, 1);
+        saveWeakList();
+        markWeakBtn.textContent = "この単語を「苦手」に登録";
+        markWeakBtn.className = "btn-danger";
+      }
+    }
+
+    function startWeakQuiz() {
+      if (weakVocabList.length === 0) return;
+      
+      // 苦手リストを出題リストとしてコピーして開始
+      vocabList = [...weakVocabList];
+      startQuizBase('苦手単語リスト');
+    }
+
+    function clearWeakList() {
+      if (confirm("登録されている苦手単語をすべて消去しますか？")) {
+        weakVocabList = [];
+        saveWeakList();
+      }
+    }
+    // ------
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      statusEl.textContent = '読み込み中...';
+      const reader = new FileReader();
+
+      reader.onload = function(evt) {
+        const text = evt.target.result;
+        processCSV(text);
+      };
+      
+      reader.onerror = function() {
+        statusEl.textContent = 'ファイルの読み込みに失敗しました。';
+      };
+
+      // UTF-8で読み込む。文字化けする場合は 'Shift_JIS' に変更
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    function processCSV(text) {
+      // 行ごとに分割 (WindowsとMacの改行コードに対応)
+      const lines = text.split(/\r\n|\n/);
+
+      let tempVocabList = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue; // 空行は無視
+
+        // カンマで分割
+        let cells = line.split(',');
+        cells = cells.map(v => v.replace(/^"|"$/g, '').trim());
+
+        // 2つ以上のデータが入っている行なら、1つ目を英単語、2つ目を和訳として採用
+        if (cells.length >= 2) {
+          // 元の行番号(1始まり)を記録しておく（表示や管理の際に役立つため）
+          tempVocabList.push({ originalIndex: tempVocabList.length + 1, en: cells[0], ja: cells[1] });
+        }
+      }
+
+      if (tempVocabList.length === 0) {
+        statusEl.textContent = '有効なデータが見つかりませんでした。';
+        quizArea.style.display = 'none';
+        return;
+      }
+
+      // 出題範囲の設定を読み取る
+      const startInput = document.getElementById('startNum').value;
+      const endInput = document.getElementById('endNum').value;
+
+      let startIdx = parseInt(startInput, 10);
+      let endIdx = parseInt(endInput, 10);
+
+      // 指定がない、または不正な値なら最小・最大をセット
+      if (isNaN(startIdx) || startIdx < 1) startIdx = 1;
+      if (isNaN(endIdx) || endIdx > tempVocabList.length) endIdx = tempVocabList.length;
+      
+      // 開始と終了が逆になっていた場合は入れ替える
+      if (startIdx > endIdx) {
+        let tmp = startIdx;
+        startIdx = endIdx;
+        endIdx = tmp;
+      }
+
+      // 配列の指定範囲のみを切り出す（startIdxなどは1始まりなので配列用インデックスに調整）
+      vocabList = tempVocabList.slice(startIdx - 1, endIdx);
+
+      if (vocabList.length === 0) {
+        statusEl.textContent = '指定された範囲にデータがありません。';
+        quizArea.style.display = 'none';
+        return;
+      }
+
+      startQuizBase('CSVファイル');
+    }
+
+    function startQuizBase(sourceName) {
+      statusEl.textContent = `読み込み完了：${vocabList.length}語（${sourceName}）`;
+      
+      // 出題順序をシャッフルした配列を作る
+      // usedIndices を使ったランダム手法から配列そのものをシャッフルする手法に変更
+      shuffleArray(vocabList);
+      
+      usedIndices = []; // 今何問目かを管理するために使用
+      historyData = [];
+      quizArea.style.display = 'block';
+      historyArea.style.display = 'block';
+      updateHistoryUI();
+      nextBtn.disabled = true;
+      checkBtn.disabled = false;
+      markWeakBtn.style.display = 'none';
+      resultArea.textContent = '';
+      
+      nextRandomQuestion();
+    }
+
+    // 配列をランダムに並び替える関数（フィッシャー–イェーツのシャッフル）
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function nextRandomQuestion() {
+      if (usedIndices.length === vocabList.length) {
+        resultArea.textContent = '全ての問題を出題しました。お疲れさまです。';
+        questionWord.textContent = '';
+        checkBtn.disabled = true;
+        nextBtn.disabled = true;
+        markWeakBtn.style.display = 'none';
+        progressEl.textContent = `進捗：${usedIndices.length} / ${vocabList.length}`;
+        return;
+      }
+
+      // 既にシャッフル済みなので、先頭から順番に取り出すだけでランダム出題になる
+      currentIndex = usedIndices.length;
+      usedIndices.push(currentIndex);
+
+      const item = vocabList[currentIndex];
+      questionWord.textContent = item.en;
+      resultArea.textContent = '';
+      checkBtn.disabled = false;
+      nextBtn.disabled = true;
+      markWeakBtn.style.display = 'none';
+      
+      // ボタンの状態をリセット
+      markWeakBtn.textContent = "この単語を「苦手」に登録";
+      markWeakBtn.className = "btn-danger";
+      markWeakBtn.disabled = false;
+
+      progressEl.textContent = `進捗：${usedIndices.length} / ${vocabList.length}`;
+    }
+
+    function checkAnswer() {
+      if (currentIndex < 0 || currentIndex >= vocabList.length) return;
+
+      const currentItem = vocabList[currentIndex];
+      const correct = currentItem.ja;
+
+      resultArea.textContent = '答え: ' + correct;
+     
+      // 履歴に問題と答えを追加
+      historyData.unshift({ en: currentItem.en, ja: correct });
+      if (historyData.length > 5) {
+        historyData.pop(); // 最新5件だけ残す
+      }
+      updateHistoryUI(); // 画面に反映
+
+      // すでに苦手に登録済みかチェックしてテキストを変える
+      const isAlreadyAdded = weakVocabList.some(item => item.en === currentItem.en);
+      if (isAlreadyAdded) {
+        markWeakBtn.textContent = "✓ 登録済み（クリックで解除）";
+        markWeakBtn.className = "btn-outline";
+      } else {
+        markWeakBtn.textContent = "この単語を「苦手」に登録";
+        markWeakBtn.className = "btn-danger";
+      }
+
+      checkBtn.disabled = true;
+      nextBtn.disabled = false;
+      markWeakBtn.disabled = false; // 解除できるようにボタンは有効のままにする
+      markWeakBtn.style.display = 'block'; // 答えを見たら苦手登録ボタンを表示
+    }
+
+    function updateHistoryUI() {
+      historyList.innerHTML = '';
+      if (historyData.length === 0) {
+        historyList.innerHTML = '<li style="justify-content:center; color:#999;">まだ履歴はありません</li>';
+        return;
+      }
+      historyData.forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="en-word">${item.en}</span> <span class="ja-word">${item.ja}</span>`;
+        historyList.appendChild(li);
+      });
+    }
+
+    function nextQuestion() {
+      nextRandomQuestion();
+    }
+
+    // 全角・半角やスペースの違いをある程度吸収するための簡易正規化
+    function normalize(str) {
+      return str
+        .replace(/\s+/g, '') // 空白削除
+        .replace(/[！-～]/g, function(ch) {
+          return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+        }) // 全角英数記号→半角
+        .toLowerCase();
+    }
+  </script>
+</body>
+</html>
